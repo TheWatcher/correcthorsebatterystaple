@@ -54,7 +54,9 @@ function CorrectHorseBatteryStaple() {
 
 	// Default options
 	this.defaults = {
-		minLength:     10,
+		minLength:     16,
+		maxLength:     32,
+		tries:         5,
 		firstUpper:    true,
 		minWords:      3,
 		appendNumbers: true,
@@ -249,10 +251,27 @@ function CorrectHorseBatteryStaple() {
 
 		this.words = [];
 
-		this.options.minWords = parseInt(this.options.minWords, 10) || this.defaults.minWords;
+		this.options.minWords  = parseInt(this.options.minWords , 10) || this.defaults.minWords;
 		this.options.minLength = parseInt(this.options.minLength, 10) || this.defaults.minLength;
+		this.options.maxLength = parseInt(this.options.maxLength, 10) || this.defaults.maxLength;
+		this.options.tries     = parseInt(this.options.tries    , 10) || this.defaults.tries;
 
-		this.fullPassword = this.getWords();
+		if(this.options.minLength > this.options.maxLength) {
+			var tmp = this.options.minLength;
+			this.options.minLength = this.options.maxLength;
+			this.options.maxLength = tmp;
+		}
+
+		// Try to generate a password that is between minlen and maxlen, but only try
+		// at most 'tries' times to limit the upper length.
+		var tryNum = 0;
+		do {
+			this.words = [];
+			this.fullPassword = this.getWords();
+			++tryNum;
+		} while(this.options.maxLength &&  // Only bother trying to limit if one set
+				this.fullPassword.length > this.options.maxLength &&
+				tryNum <= this.options.tries);
 
 		this.ui.$passwordBox.val(this.fullPassword).trigger("change");
 
@@ -277,7 +296,7 @@ function CorrectHorseBatteryStaple() {
 		//generate a full string to test against min length
 		fullword = this.words.join(this.options.separator.substring(0, 1) || "");
 
-		//recurse untill our password is long enough;
+		//recurse until our password is long enough;
 		if ( fullword.length < this.options.minLength ) {
 			return this.getWords(1);
 		}
@@ -393,7 +412,7 @@ function CorrectHorseBatteryStaple() {
 			const checked = $(this).prop("checked");
 			const dict = $(this).attr('data-dict');
 			self.dictionaries[dict].active = checked;
-			
+
 			if (checked === true){
 				if (!self.dictionaries[dict].data) {
 					self.loadData(dict);
@@ -458,7 +477,7 @@ function CorrectHorseBatteryStaple() {
 
 	};
 
-	this.loadOptions = function(){ 
+	this.loadOptions = function(){
 		let queryParams = {};
 
 		if (window.location.search) {
@@ -470,7 +489,7 @@ function CorrectHorseBatteryStaple() {
 					//parse out the values that are meant to be boolean
 					if (typeof this.options[k] === 'boolean') {
 						v = v === 'true' ? true : false;
-					} 
+					}
 					map[k] = v;
 					return map;
 				}, {});
@@ -497,7 +516,7 @@ function CorrectHorseBatteryStaple() {
 				this.options = { ...this.options, ...queryParams }
 				this.setAllUIOptions();
 			}
-		}		
+		}
 	}
 
 	this.optionsToQueryString = function() {
@@ -522,7 +541,7 @@ function CorrectHorseBatteryStaple() {
 		Promise.all(Object.entries(this.dictionaries).filter(([dictName, dict]) => dict.active).map(([dictName, dict]) => {
 			return this.loadData(dictName)
 		})).then(() => this.generate());
-		
+
 		// Bind Events
 		this.bindEvents();
 	};
